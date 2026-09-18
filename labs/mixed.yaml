@@ -1,0 +1,38 @@
+name: mixed_families_v1
+
+data:
+  source: synthetic
+  symbol: BTC/USDT
+  timeframe: 1m
+  n: 2000
+  start_price: 30000
+  drift: 0.00002
+  volatility: 0.004
+  step_seconds: 60
+  seed: 42
+
+backtest:
+  starting_balance: 10000
+  fee_rate: 0.001
+  slippage_bps: 5
+  periods_per_year: 525600
+
+strategies:
+  - name: sma_med
+    class: sma_crossover
+    params: { fast: 10, slow: 30, quantity: 0.05 }
+  - name: rsi_14
+    class: rsi_mean_reversion
+    params: { period: 14, oversold: 30, overbought: 70, quantity: 0.05 }
+  - name: rsi_21
+    class: rsi_mean_reversion
+    params: { period: 21, oversold: 25, overbought: 75, quantity: 0.05 }
+  - name: boll_20_2
+    class: bollinger_breakout
+    params: { period: 20, num_std: 2.0, quantity: 0.05 }
+  - name: boll_50_2
+    class: bollinger_breakout
+    params: { period: 50, num_std: 2.0, quantity: 0.05 }
+
+output:
+  dir: data/lab_runs

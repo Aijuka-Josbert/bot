@@ -1,0 +1,91 @@
+{
+  "name": "mixed_with_risk_v1",
+  "saved_at": "2026-09-18T21:38:31.560775+00:00",
+  "symbol": "BTC/USDT",
+  "candles": 2000,
+  "starting_balance": 10000,
+  "strategies": [
+    {
+      "name": "sma_med",
+      "class": "sma_crossover",
+      "params": {
+        "fast": 10,
+        "slow": 30,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -2.6365,
+        "final_equity": 9736.3512,
+        "sharpe": -52.2208,
+        "sortino": -23.1763,
+        "max_drawdown_pct": 2.6365,
+        "trades": 44,
+        "win_rate_pct": 18.1818,
+        "profit_factor": 0.4665,
+        "expectancy": -4.0161,
+        "avg_win_loss_ratio": 2.0994,
+        "rejected_orders": 0.0,
+        "halt_events": 0.0
+      },
+      "fills": 88,
+      "closed_trades": 44,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "rsi_14",
+      "class": "rsi_mean_reversion",
+      "params": {
+        "period": 14,
+        "oversold": 30,
+        "overbought": 70,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -2.1013,
+        "final_equity": 9789.8735,
+        "sharpe": -34.5208,
+        "sortino": -17.7209,
+        "max_drawdown_pct": 2.6192,
+        "trades": 52,
+        "win_rate_pct": 28.8462,
+        "profit_factor": 0.7132,
+        "expectancy": -2.1211,
+        "avg_win_loss_ratio": 1.7592,
+        "rejected_orders": 0.0,
+        "halt_events": 0.0
+      },
+      "fills": 105,
+      "closed_trades": 52,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "boll_20_2",
+      "class": "bollinger_breakout",
+      "params": {
+        "period": 20,
+        "num_std": 2.0,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -3.0937,
+        "final_equity": 9690.633,
+        "sharpe": -65.3023,
+        "sortino": -27.2126,
+        "max_drawdown_pct": 3.127,
+        "trades": 46,
+        "win_rate_pct": 21.7391,
+        "profit_factor": 0.3258,
+        "expectancy": -4.7515,
+        "avg_win_loss_ratio": 1.1729,
+        "rejected_orders": 12.0,
+        "halt_events": 1.0
+      },
+      "fills": 92,
+      "closed_trades": 46,
+      "candles_processed": 2000,
+      "error_count": 0
+    }
+  ]
+}

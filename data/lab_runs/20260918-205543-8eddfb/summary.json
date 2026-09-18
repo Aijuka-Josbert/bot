@@ -1,0 +1,84 @@
+{
+  "name": "sma_compare_v1",
+  "saved_at": "2026-09-18T20:55:43.800419+00:00",
+  "symbol": "BTC/USDT",
+  "candles": 2000,
+  "starting_balance": 10000,
+  "strategies": [
+    {
+      "name": "sma_fast",
+      "class": "sma_crossover",
+      "params": {
+        "fast": 5,
+        "slow": 15,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -6.4514,
+        "final_equity": 9354.8633,
+        "sharpe": -50.0372,
+        "sortino": -36.8538,
+        "max_drawdown_pct": 7.135,
+        "trades": 88,
+        "win_rate_pct": 31.8182,
+        "profit_factor": 0.5491,
+        "expectancy": -4.0713,
+        "avg_win_loss_ratio": 1.1767
+      },
+      "fills": 176,
+      "closed_trades": 88,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "sma_med",
+      "class": "sma_crossover",
+      "params": {
+        "fast": 10,
+        "slow": 30,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -3.9955,
+        "final_equity": 9600.4492,
+        "sharpe": -31.491,
+        "sortino": -22.9425,
+        "max_drawdown_pct": 5.0563,
+        "trades": 44,
+        "win_rate_pct": 20.4545,
+        "profit_factor": 0.5957,
+        "expectancy": -5.8163,
+        "avg_win_loss_ratio": 2.3164
+      },
+      "fills": 88,
+      "closed_trades": 44,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "sma_slow",
+      "class": "sma_crossover",
+      "params": {
+        "fast": 20,
+        "slow": 50,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -2.4092,
+        "final_equity": 9759.0763,
+        "sharpe": -20.1214,
+        "sortino": -13.6309,
+        "max_drawdown_pct": 2.8191,
+        "trades": 19,
+        "win_rate_pct": 31.5789,
+        "profit_factor": 0.4818,
+        "expectancy": -9.3846,
+        "avg_win_loss_ratio": 1.0438
+      },
+      "fills": 38,
+      "closed_trades": 19,
+      "candles_processed": 2000,
+      "error_count": 0
+    }
+  ]
+}

@@ -1,8 +1,12 @@
 """Strategy registry. Add new strategies here to make them discoverable by name."""
+from .bollinger import BollingerBreakout
+from .rsi_mean_reversion import RsiMeanReversion
 from .sma_crossover import SmaCrossover
 
 REGISTRY: dict[str, type] = {
     "sma_crossover": SmaCrossover,
+    "rsi_mean_reversion": RsiMeanReversion,
+    "bollinger_breakout": BollingerBreakout,
 }
 
 

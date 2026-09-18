@@ -56,7 +56,8 @@ class Order:
     side: Side
     quantity: float
     order_type: OrderType = OrderType.MARKET
-    price: Optional[float] = None        # None for market orders
+    price: Optional[float] = None
+    trigger_price: Optional[float] = None   # <-- NEW: forced-exit fill price hint
     status: OrderStatus = OrderStatus.NEW
     id: Optional[str] = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

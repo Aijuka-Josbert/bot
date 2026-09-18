@@ -1,0 +1,136 @@
+{
+  "name": "mixed_families_v1",
+  "saved_at": "2026-09-18T21:03:33.408658+00:00",
+  "symbol": "BTC/USDT",
+  "candles": 2000,
+  "starting_balance": 10000,
+  "strategies": [
+    {
+      "name": "sma_med",
+      "class": "sma_crossover",
+      "params": {
+        "fast": 10,
+        "slow": 30,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -3.9955,
+        "final_equity": 9600.4492,
+        "sharpe": -31.491,
+        "sortino": -22.9425,
+        "max_drawdown_pct": 5.0563,
+        "trades": 44,
+        "win_rate_pct": 20.4545,
+        "profit_factor": 0.5957,
+        "expectancy": -5.8163,
+        "avg_win_loss_ratio": 2.3164
+      },
+      "fills": 88,
+      "closed_trades": 44,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "rsi_14",
+      "class": "rsi_mean_reversion",
+      "params": {
+        "period": 14,
+        "oversold": 30,
+        "overbought": 70,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -1.5892,
+        "final_equity": 9841.0797,
+        "sharpe": -12.3207,
+        "sortino": -9.4473,
+        "max_drawdown_pct": 2.2924,
+        "trades": 14,
+        "win_rate_pct": 50.0,
+        "profit_factor": 0.5844,
+        "expectancy": -7.2106,
+        "avg_win_loss_ratio": 0.5844
+      },
+      "fills": 29,
+      "closed_trades": 14,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "rsi_21",
+      "class": "rsi_mean_reversion",
+      "params": {
+        "period": 21,
+        "oversold": 25,
+        "overbought": 75,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": 0.2296,
+        "final_equity": 10022.9554,
+        "sharpe": 2.0203,
+        "sortino": 1.5025,
+        "max_drawdown_pct": 2.1405,
+        "trades": 4,
+        "win_rate_pct": 100.0,
+        "profit_factor": Infinity,
+        "expectancy": 52.756,
+        "avg_win_loss_ratio": 0.0
+      },
+      "fills": 9,
+      "closed_trades": 4,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "boll_20_2",
+      "class": "bollinger_breakout",
+      "params": {
+        "period": 20,
+        "num_std": 2.0,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -5.252,
+        "final_equity": 9474.802,
+        "sharpe": -55.7138,
+        "sortino": -28.6495,
+        "max_drawdown_pct": 5.7034,
+        "trades": 45,
+        "win_rate_pct": 22.2222,
+        "profit_factor": 0.2783,
+        "expectancy": -8.3866,
+        "avg_win_loss_ratio": 0.9739
+      },
+      "fills": 90,
+      "closed_trades": 45,
+      "candles_processed": 2000,
+      "error_count": 0
+    },
+    {
+      "name": "boll_50_2",
+      "class": "bollinger_breakout",
+      "params": {
+        "period": 50,
+        "num_std": 2.0,
+        "quantity": 0.05
+      },
+      "metrics": {
+        "total_return_pct": -1.1215,
+        "final_equity": 9887.8451,
+        "sharpe": -12.3984,
+        "sortino": -6.2175,
+        "max_drawdown_pct": 2.1606,
+        "trades": 17,
+        "win_rate_pct": 29.4118,
+        "profit_factor": 0.782,
+        "expectancy": -3.3213,
+        "avg_win_loss_ratio": 1.8767
+      },
+      "fills": 34,
+      "closed_trades": 17,
+      "candles_processed": 2000,
+      "error_count": 0
+    }
+  ]
+}

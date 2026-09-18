@@ -1,0 +1,32 @@
+name: sma_compare_v1
+
+data:
+  source: synthetic
+  symbol: BTC/USDT
+  timeframe: 1m
+  n: 2000
+  start_price: 30000
+  drift: 0.00002
+  volatility: 0.004
+  step_seconds: 60
+  seed: 42
+
+backtest:
+  starting_balance: 10000
+  fee_rate: 0.001
+  slippage_bps: 5
+  periods_per_year: 525600
+
+strategies:
+  - name: sma_fast
+    class: sma_crossover
+    params: { fast: 5,  slow: 15, quantity: 0.05 }
+  - name: sma_med
+    class: sma_crossover
+    params: { fast: 10, slow: 30, quantity: 0.05 }
+  - name: sma_slow
+    class: sma_crossover
+    params: { fast: 20, slow: 50, quantity: 0.05 }
+
+output:
+  dir: data/lab_runs
