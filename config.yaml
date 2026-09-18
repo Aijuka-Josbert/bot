@@ -1,0 +1,29 @@
+bot:
+  name: "alpha-1"
+  strategy: "sma_crossover"
+  mode: "paper"            # paper | live
+  log_level: "INFO"
+
+exchange:
+  name: "binance"
+  api_key: "${BINANCE_API_KEY}"
+  api_secret: "${BINANCE_API_SECRET}"
+  testnet: true
+
+market:
+  symbol: "BTC/USDT"
+  timeframe: "1m"
+  candles_lookback: 200
+
+risk:
+  starting_balance: 10000.0
+  max_position_pct: 0.10       # 10% of equity max per trade
+  max_daily_loss_pct: 0.05     # halt if down 5% on the day
+  max_open_positions: 3
+  stop_loss_pct: 0.02
+  take_profit_pct: 0.04
+  fee_rate: 0.001              # 0.1%
+  slippage_bps: 5              # 5 bps = 0.05%
+
+storage:
+  db_path: "data/bot.db"

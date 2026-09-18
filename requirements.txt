@@ -1,0 +1,6 @@
+PyYAML==6.0.1
+python-dotenv==1.0.1
+ccxt==4.3.50
+
+# install dependencies for the project
+# pip install -r requirements.txt
