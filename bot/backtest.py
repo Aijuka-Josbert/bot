@@ -7,8 +7,9 @@ from typing import Iterable, Optional
 
 from .buffer import CandleBuffer
 from .exchange import PaperExchange
+from .executor import process_candle
 from .metrics import compute_all
-from .models import Candle, ClosedTrade, Fill, Order
+from .models import Candle, ClosedTrade, Fill
 from .portfolio import Portfolio
 from .risk import RiskManager
 from .strategy import Strategy, StrategyContext
@@ -35,14 +36,6 @@ class BacktestResult:
 
 
 class Backtester:
-    """
-    Drives one strategy over a fixed candle series.
-
-    If a RiskManager is provided, forced exits (SL/TP/halt) run before the
-    strategy sees each candle, and every strategy order passes through
-    check_order() first.
-    """
-
     def __init__(
         self,
         starting_balance: float,
@@ -58,41 +51,6 @@ class Backtester:
         self.buffer_size = buffer_size
         self.periods_per_year = periods_per_year
         self.risk = risk
-
-    # --- internals ---
-
-    def _execute(
-        self,
-        order: Order,
-        symbol: str,
-        candle: Candle,
-        exchange: PaperExchange,
-        portfolio: Portfolio,
-        strategy: Strategy,
-        ctx: StrategyContext,
-        result: BacktestResult,
-    ) -> Optional[Fill]:
-        """Submit one order. Handles trigger_price override for forced exits."""
-        override = order.trigger_price is not None
-        if override:
-            exchange.update_price(symbol, order.trigger_price)
-
-        fill = exchange.submit(order)
-
-        if override:
-            exchange.update_price(symbol, candle.close)
-
-        if fill is None:
-            return None
-
-        portfolio.apply_fill(fill)
-        if self.risk is not None:
-            self.risk.on_fill(fill, ctx)
-        strategy.on_fill(fill, ctx)
-        result.fills.append(fill)
-        return fill
-
-    # --- main loop ---
 
     def run(
         self,
@@ -133,29 +91,12 @@ class Backtester:
         for candle in candles:
             try:
                 buffer.append(candle)
-                exchange.update_price(symbol, candle.close)
-                ctx.last_price = candle.close
-                ctx.now = candle.timestamp
+                fills = process_candle(
+                    candle, symbol, ctx, strategy,
+                    exchange, portfolio, self.risk,
+                )
+                result.fills.extend(fills)
 
-                # 1. risk-driven forced exits (SL / TP / halt)
-                if self.risk is not None:
-                    for order in self.risk.on_candle(candle, ctx):
-                        self._execute(order, symbol, candle, exchange,
-                                      portfolio, strategy, ctx, result)
-
-                # 2. strategy decisions
-                strategy_orders = strategy.on_candle(candle, ctx) or []
-
-                # 3. screen + execute
-                for order in strategy_orders:
-                    if self.risk is not None:
-                        order = self.risk.check_order(order, ctx)
-                        if order is None:
-                            continue
-                    self._execute(order, symbol, candle, exchange,
-                                  portfolio, strategy, ctx, result)
-
-                # 4. snapshot
                 result.equity_curve.append(portfolio.equity({symbol: candle.close}))
                 result.timestamps.append(candle.timestamp)
                 result.candles_processed += 1
@@ -171,8 +112,6 @@ class Backtester:
             starting_balance=self.starting_balance,
             periods_per_year=self.periods_per_year,
         )
-
-        # risk meta-metrics
         if self.risk is not None:
             result.metrics["rejected_orders"] = float(self.risk.rejection_count)
             result.metrics["halt_events"] = float(self.risk.halt_count)

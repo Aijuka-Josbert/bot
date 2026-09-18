@@ -6,8 +6,9 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-
+from .charts import generate_charts
 from .runner import LabRun
+from .html_report import write_report
 
 
 def _run_id() -> str:
@@ -44,7 +45,7 @@ class LabStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def save(self, run: LabRun) -> Path:
+    def save(self, run: LabRun, write_html: bool = True) -> Path:
         run_dir = self.root / _run_id()
         run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -68,7 +69,6 @@ class LabStore:
                 "candles_processed": sr.result.candles_processed,
                 "error_count": sr.result.error_count,
             })
-
             _write_equity_csv(
                 run_dir / f"equity_{sr.name}.csv",
                 sr.result.timestamps,
@@ -78,6 +78,14 @@ class LabStore:
                 run_dir / f"trades_{sr.name}.csv",
                 sr.result.closed_trades,
             )
+
+        chart_paths = generate_charts(run, run_dir)
+        if chart_paths:
+            summary["charts"] = [p.name for p in chart_paths]
+
+        if write_html:
+            report_path = write_report(run, run_dir, saved_at=summary["saved_at"])
+            summary["report"] = report_path.name
 
         (run_dir / "summary.json").write_text(json.dumps(summary, indent=2))
         return run_dir

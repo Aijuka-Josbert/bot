@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-bot"
+version = "0.1.0"
+description = "Modular crypto trading bot with backtesting, virtual lab, and live engine"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "your name", email = "you@example.com" }]
+keywords = ["trading", "crypto", "backtest", "binance", "ccxt"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+  "PyYAML>=6.0",
+  "python-dotenv>=1.0",
+  "pandas>=2.0",
+  "ccxt>=4.0",
+  "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+bot-run = "bot.cli:main"
+bot-lab = "lab.__main__:main"
+
+[tool.setuptools]
+packages = ["bot", "bot.exchanges", "bot.strategies", "lab"]
+
+[tool.setuptools.package-data]
+bot = ["py.typed"]
+lab = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

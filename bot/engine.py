@@ -1,190 +1,171 @@
-"""
-Engine: feeds candles to a strategy, executes orders, updates portfolio.
-
-Responsibilities:
-  1. For each candle:
-     a. push price to exchange
-     b. build Context from current portfolio state
-     c. call strategy.on_candle -> list[Order]
-     d. submit orders, collect fills
-     e. apply fills to portfolio
-     f. check stop-loss / take-profit on open positions
-     g. record equity for the curve
-  2. Return a RunResult with everything the caller needs.
-
-The engine is exchange-agnostic: any Exchange subclass works.
-"""
+"""Live engine: polls candles, drives the same pipeline as the backtester."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Iterable, Optional
+import logging
+import signal
+import time
+from datetime import datetime, timezone
+from typing import Optional
 
+from .buffer import CandleBuffer
 from .exchange import Exchange
-from .models import Candle, Fill, Order, Side
-from .portfolio import Portfolio, PortfolioSnapshot
-from .strategy import Context, Strategy
+from .exchanges.ccxt_exchange import CcxtExchange
+from .executor import process_candle
+from .models import Candle
+from .portfolio import Portfolio
+from .risk import RiskManager
+from .safety import KillSwitch
+from .strategy import Strategy, StrategyContext
+
+logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# RunResult — what the engine hands back when done.
-# ---------------------------------------------------------------------------
-@dataclass
-class EquityPoint:
-    timestamp: object
-    equity: float
-
-
-@dataclass
-class RunResult:
-    starting_balance: float
-    final_equity: float
-    realized_pnl: float
-    total_fees: float
-    candles_processed: int
-    fills: list[Fill] = field(default_factory=list)
-    equity_curve: list[EquityPoint] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
-
-    @property
-    def net_pnl(self) -> float:
-        return self.final_equity - self.starting_balance
-
-    @property
-    def return_pct(self) -> float:
-        if self.starting_balance == 0:
-            return 0.0
-        return self.net_pnl / self.starting_balance
-
-
-# ---------------------------------------------------------------------------
-# The engine itself.
-# ---------------------------------------------------------------------------
 class Engine:
+    """
+    Long-running trading loop.
+
+    Each tick:
+        1. check kill switch
+        2. fetch recent candles
+        3. skip already-processed candles
+        4. push each new candle through the shared pipeline
+        5. emit a heartbeat every `heartbeat_seconds`
+    """
+
     def __init__(
         self,
+        symbol: str,
         strategy: Strategy,
         exchange: Exchange,
         portfolio: Portfolio,
-        symbol: str,
-        stop_loss_pct: Optional[float] = None,
-        take_profit_pct: Optional[float] = None,
-        verbose: bool = False,
+        buffer_size: int = 500,
+        risk: Optional[RiskManager] = None,
+        poll_seconds: int = 30,
+        source: Optional[CcxtExchange] = None,
+        kill_switch: Optional[KillSwitch] = None,
+        heartbeat_seconds: int = 60,
     ) -> None:
+        self.symbol = symbol
         self.strategy = strategy
         self.exchange = exchange
         self.portfolio = portfolio
-        self.symbol = symbol
-        self.stop_loss_pct = stop_loss_pct
-        self.take_profit_pct = take_profit_pct
-        self.verbose = verbose
+        self.buffer = CandleBuffer(maxlen=buffer_size)
+        self.risk = risk
+        self.poll_seconds = poll_seconds
+        self.source = source
+        self.kill_switch = kill_switch or KillSwitch()
+        self.heartbeat_seconds = heartbeat_seconds
 
-    # ---- main entry ----
+        self._stop = False
+        self._last_ts: Optional[datetime] = None
+        self._ctx: Optional[StrategyContext] = None
+        self._last_heartbeat: float = 0.0
 
-    def run(self, candles: Iterable[Candle]) -> RunResult:
-        result = RunResult(
-            starting_balance=self.portfolio.starting_balance,
-            final_equity=self.portfolio.starting_balance,
-            realized_pnl=0.0,
-            total_fees=0.0,
-            candles_processed=0,
-        )
+    # --- lifecycle ---
 
-        self.strategy.reset()
+    def _install_signal_handlers(self) -> None:
+        def _handler(signum, frame):
+            logger.warning("signal %s received; stopping engine", signum)
+            self.stop()
+        signal.signal(signal.SIGINT, _handler)
+        signal.signal(signal.SIGTERM, _handler)
 
-        for candle in candles:
-            try:
-                self._step(candle, result)
-            except Exception as exc:  # never let one bad candle kill the run
-                msg = f"candle {candle.timestamp}: {type(exc).__name__}: {exc}"
-                result.errors.append(msg)
-                if self.verbose:
-                    print(f"  [engine error] {msg}")
-                continue
+    def stop(self) -> None:
+        self._stop = True
 
-            result.candles_processed += 1
-            result.equity_curve.append(
-                EquityPoint(timestamp=candle.timestamp, equity=self.portfolio.equity({self.symbol: candle.close}))
-            )
+    # --- main loop ---
 
-        # Finalize summary numbers.
-        last_price = (
-            result.equity_curve[-1].equity if result.equity_curve else self.portfolio.starting_balance
-        )
-        result.final_equity = self.portfolio.equity({self.symbol: last_price}) \
-            if False else last_price  # last_price already IS equity
-        result.realized_pnl = self.portfolio.realized_pnl
-        result.total_fees = self.portfolio.total_fees
-        result.fills = list(self.exchange.fills)  # type: ignore[attr-defined]
-        return result
+    def warmup(self, candles: list[Candle]) -> None:
+        for c in candles:
+            self.buffer.append(c)
+            self.exchange.update_price(self.symbol, c.close)
+        if candles:
+            self._last_ts = candles[-1].timestamp
+        logger.info("warmup complete: %d candles buffered", len(candles))
 
-    # ---- one candle ----
+    def run(self, max_iterations: Optional[int] = None) -> None:
+        self._install_signal_handlers()
 
-    def _step(self, candle: Candle, result: RunResult) -> None:
-        # (a) Update market price so the exchange can fill orders.
-        self.exchange.update_price(self.symbol, candle.close)
-
-        # (f) BEFORE asking the strategy for new orders, honor SL/TP
-        #     on any position we already hold. This models "the market
-        #     hit your stop during this candle".
-        self._check_exits(candle)
-
-        # (b) Build a read-only view for the strategy.
-        prices = {self.symbol: candle.close}
-        ctx = Context(
+        first_price = self.exchange.get_last_price(self.symbol) or 0.0
+        self._ctx = StrategyContext(
             symbol=self.symbol,
-            position=self.portfolio.position_for(self.symbol),
-            cash=self.portfolio.cash,
-            equity=self.portfolio.equity(prices),
-            candle=candle,
+            portfolio=self.portfolio,
+            exchange=self.exchange,
+            buffer=self.buffer,
+            last_price=first_price,
+            now=datetime.now(timezone.utc),
+        )
+        self.strategy.on_start(self._ctx)
+        if self.risk is not None:
+            self.risk.on_start(self._ctx)
+
+        self._last_heartbeat = time.time()
+
+        iteration = 0
+        try:
+            while not self._stop:
+                if max_iterations is not None and iteration >= max_iterations:
+                    break
+                if self.kill_switch.is_triggered():
+                    logger.warning("kill switch detected; halting engine")
+                    break
+                self._tick()
+                self._maybe_heartbeat()
+                iteration += 1
+                if self._stop:
+                    break
+                time.sleep(self.poll_seconds)
+        finally:
+            self.strategy.on_stop(self._ctx)
+            logger.info("engine stopped after %d ticks", iteration)
+
+    def _tick(self) -> None:
+        if self.source is None:
+            logger.info("no live source; tick is a no-op")
+            return
+
+        try:
+            candles = self.source.fetch_ohlcv(limit=10)
+        except Exception as e:
+            logger.error("fetch failed: %s", e)
+            return
+
+        new_candles = [
+            c for c in candles
+            if self._last_ts is None or c.timestamp > self._last_ts
+        ]
+        if not new_candles:
+            return
+
+        for candle in new_candles:
+            self.buffer.append(candle)
+            self.exchange.update_price(self.symbol, candle.close)
+            fills = process_candle(
+                candle, self.symbol, self._ctx, self.strategy,
+                self.exchange, self.portfolio, self.risk,
+            )
+            for f in fills:
+                logger.info(
+                    "FILL %s qty=%.6f @ %.4f fee=%.4f",
+                    f.side.value.upper(), f.quantity, f.price, f.fee,
+                )
+            self._last_ts = candle.timestamp
+
+        eq = self.portfolio.equity({self.symbol: new_candles[-1].close})
+        logger.info(
+            "tick: %d new candle(s) | last=%.2f | equity=%.2f | pos=%s",
+            len(new_candles), new_candles[-1].close, eq,
+            list(self.portfolio.positions.keys()),
         )
 
-        # (c) Ask the strategy what it wants to do.
-        orders = self.strategy.on_candle(candle, ctx)
-        if not orders:
+    def _maybe_heartbeat(self) -> None:
+        now = time.time()
+        if now - self._last_heartbeat < self.heartbeat_seconds:
             return
-
-        # (d) Submit each order; apply any fills to the portfolio.
-        for order in orders:
-            fill = self.exchange.submit(order)  # type: ignore[attr-defined]
-            if fill is None:
-                if self.verbose:
-                    print(f"  [skip] {order.side.value} {order.quantity} not filled")
-                continue
-            self.portfolio.apply_fill(fill)
-            if self.verbose:
-                print(
-                    f"  [{candle.timestamp:%H:%M}] "
-                    f"{fill.side.value.upper():4s} {fill.quantity:.4f} "
-                    f"@ {fill.price:,.2f}  fee={fill.fee:.4f}"
-                )
-
-    # ---- stop loss / take profit ----
-
-    def _check_exits(self, candle: Candle) -> None:
-        pos = self.portfolio.position_for(self.symbol)
-        if pos is None:
-            return
-
-        # Respect the live price before checking thresholds.
-        price = candle.close
-        direction = 1 if pos.side is Side.BUY else -1
-        change = direction * (price - pos.entry_price) / pos.entry_price
-
-        should_exit = False
-        if self.stop_loss_pct is not None and change <= -self.stop_loss_pct:
-            should_exit = True
-        if self.take_profit_pct is not None and change >= self.take_profit_pct:
-            should_exit = True
-
-        if not should_exit:
-            return
-
-        # Close the position at the current price.
-        close_side = Side.SELL if pos.side is Side.BUY else Side.BUY
-        order = Order(symbol=self.symbol, side=close_side, quantity=pos.quantity)
-        fill = self.exchange.submit(order)  # type: ignore[attr-defined]
-        if fill is not None:
-            self.portfolio.apply_fill(fill)
-            if self.verbose:
-                reason = "SL" if change < 0 else "TP"
-                print(f"  [{candle.timestamp:%H:%M}] {reason} hit — closed @ {fill.price:,.2f}")
+        self._last_heartbeat = now
+        last_price = self.exchange.get_last_price(self.symbol) or 0.0
+        eq = self.portfolio.equity({self.symbol: last_price})
+        logger.info(
+            "heartbeat | equity=%.2f | positions=%d | last=%.2f",
+            eq, len(self.portfolio.positions), last_price,
+        )

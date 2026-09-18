@@ -1,0 +1,23 @@
+# secrets
+.env
+
+# runtime data
+data/
+KILL
+*.log
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+
+# os
+.DS_Store
+# packaging
+build/
+dist/
+*.egg-info/
+.eggs/
