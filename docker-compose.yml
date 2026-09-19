@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    image: trading-bot:latest
+    env_file: .env
+    volumes:
+      # bind-mount the project so config.yaml, data/, and KILL are shared
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - ./runtime:/app/runtime
+    # paper mode is the default in config.yaml; switch to --live here when ready
+    command: ["--config", "config.yaml", "--ticks", "0", "--poll", "60", "--heartbeat", "300"]
+    restart: unless-stopped
+    stop_grace_period: 30s

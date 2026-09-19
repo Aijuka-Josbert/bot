@@ -34,11 +34,12 @@ dev = [
 ]
 
 [project.scripts]
-bot-run = "bot.cli:main"
-bot-lab = "lab.__main__:main"
+bot-run  = "bot.cli:main"
+bot-lab  = "lab.__main__:main"
+bot-smoke = "scripts.live_smoke:main"
 
 [tool.setuptools]
-packages = ["bot", "bot.exchanges", "bot.strategies", "lab"]
+packages = ["bot", "bot.exchanges", "bot.strategies", "lab", "scripts"]
 
 [tool.setuptools.package-data]
 bot = ["py.typed"]

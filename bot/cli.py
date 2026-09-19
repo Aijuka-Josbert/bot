@@ -28,6 +28,10 @@ def build_risk(cfg) -> RiskManager:
     ))
 
 
+def _ticks_label(ticks: int) -> str:
+    return "forever" if ticks <= 0 else f"{ticks} ticks"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="bot-run",
@@ -39,9 +43,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="use live mode (needs API keys)")
     parser.add_argument("--dry-run", action="store_true",
                         help="log orders without submitting (live mode only)")
-    parser.add_argument("--ticks", type=int, default=20)
-    parser.add_argument("--poll", type=int, default=5)
-    parser.add_argument("--heartbeat", type=int, default=60)
+    parser.add_argument("--ticks", type=int, default=20,
+                        help="number of ticks to run; 0 = forever (default: 20)")
+    parser.add_argument("--poll", type=int, default=5,
+                        help="seconds between ticks (default: 5)")
+    parser.add_argument("--heartbeat", type=int, default=60,
+                        help="seconds between heartbeat logs (default: 60)")
     args = parser.parse_args(argv)
 
     logging.basicConfig(
@@ -58,8 +65,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  timeframe : {cfg.market.timeframe}")
     print(f"  testnet   : {cfg.exchange.testnet}")
 
+    # 1. exchange (paper or live)
     exchange = make_exchange(cfg, force_mode=mode, dry_run=dry_run)
 
+    # 2. live data source (always ccxt, read-only for candles)
     source = CcxtExchange(
         name=cfg.exchange.name,
         symbol=cfg.market.symbol,
@@ -69,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         testnet=cfg.exchange.testnet,
     )
 
+    # 3. preflight if live and not dry-run
     if mode == "live" and not dry_run:
         banner("Preflight")
         ok, msg = preflight_live(exchange, cfg.market.symbol, min_balance=10.0)
@@ -80,10 +90,12 @@ def main(argv: list[str] | None = None) -> int:
         if bal:
             print(f"  free {bal['quote']}: {bal['free']:.4f}")
 
+    # 4. strategy + portfolio + risk
     strategy = make(cfg.bot.strategy, {"fast": 10, "slow": 30, "quantity": 0.005})
     portfolio = Portfolio(starting_balance=cfg.risk.starting_balance)
     risk = build_risk(cfg)
 
+    # 5. engine
     engine = Engine(
         symbol=cfg.market.symbol,
         strategy=strategy,
@@ -96,14 +108,18 @@ def main(argv: list[str] | None = None) -> int:
         heartbeat_seconds=args.heartbeat,
     )
 
+    # 6. warmup with recent candles
     warmup = source.fetch_ohlcv(limit=200)
     engine.warmup(warmup)
     print(f"  warmed up with {len(warmup)} candles")
 
-    banner(f"Running for {args.ticks} ticks (poll={args.poll}s)")
+    # 7. run (ticks <= 0 means run forever)
+    banner(f"Running for {_ticks_label(args.ticks)} (poll={args.poll}s)")
     print("  kill switch: create a file named 'KILL' to halt")
-    engine.run(max_iterations=args.ticks)
+    max_iter = args.ticks if args.ticks > 0 else None
+    engine.run(max_iterations=max_iter)
 
+    # 8. report
     banner("Final state")
     last_price = source.get_last_price(cfg.market.symbol) or 0.0
     print(portfolio.snapshot({cfg.market.symbol: last_price}))
