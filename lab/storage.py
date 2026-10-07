@@ -6,9 +6,10 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
 from .charts import generate_charts
-from .runner import LabRun
 from .html_report import write_report
+from .runner import LabRun
 
 
 def _run_id() -> str:

@@ -6,10 +6,8 @@ import math
 import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable, Optional
 
 from .models import Candle
-
 
 # --- helpers ---
 
@@ -60,9 +58,9 @@ def generate_synthetic(
     start_price: float = 30_000.0,
     drift: float = 0.0,
     volatility: float = 0.005,
-    start_time: Optional[datetime] = None,
+    start_time: datetime | None = None,
     step_seconds: int = 60,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> list[Candle]:
     """
     Geometric Brownian Motion candle generator.
@@ -102,7 +100,7 @@ def generate_synthetic(
 def download_ccxt(
     symbol: str,
     timeframe: str = "1m",
-    since_iso: Optional[str] = None,
+    since_iso: str | None = None,
     limit: int = 1000,
     exchange_name: str = "binance",
 ) -> list[Candle]:

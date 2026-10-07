@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import deque
-from typing import Iterable, Iterator, Optional
+from collections.abc import Iterable, Iterator
 
 from .models import Candle
 
@@ -30,7 +30,7 @@ class CandleBuffer:
         return list(self._candles)[idx]
 
     @property
-    def last(self) -> Optional[Candle]:
+    def last(self) -> Candle | None:
         return self._candles[-1] if self._candles else None
 
     def closes(self) -> list[float]:

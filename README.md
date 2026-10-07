@@ -296,3 +296,31 @@ bot-lab report --latest
 
 `python main.py` and `python -m lab` still work — the console scripts
 are just aliases.
+
+### 5. README — append two sections
+
+At the end of `README.md`, add:
+
+````markdown
+## Project status
+
+| Area | State |
+|---|---|
+| Core bot + portfolio + risk | ✅ stable |
+| Backtester + metrics | ✅ stable |
+| Virtual lab (parallel runs, charts, HTML report) | ✅ stable |
+| Live engine (paper + testnet + mainnet) | ✅ stable, tested on Binance testnet |
+| Notifications (Telegram) | ✅ stable |
+| Multi-symbol | ✅ stable |
+| Docker + systemd | ✅ stable |
+| Tests | ✅ 60+ passing |
+
+## Roadmap
+
+- [ ] Postgres / Timescale persistence for live equity curves
+- [ ] Web dashboard (FastAPI + HTMX or React)
+- [ ] Additional strategies: MACD, ATR trailing stop, pairs trading
+- [ ] Futures / margin support
+- [ ] Portfolio-level risk (correlation caps, sector limits)
+- [ ] Slack / Discord / email notifiers
+- [ ] Scheduler for periodic re-optimization

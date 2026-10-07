@@ -1,9 +1,9 @@
 """Replays a candle series through a strategy, with optional risk enforcement."""
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Iterable, Optional
 
 from .buffer import CandleBuffer
 from .exchange import PaperExchange
@@ -43,7 +43,7 @@ class Backtester:
         slippage_bps: int = 5,
         buffer_size: int = 500,
         periods_per_year: int = 525_600,
-        risk: Optional[RiskManager] = None,
+        risk: RiskManager | None = None,
     ) -> None:
         self.starting_balance = starting_balance
         self.fee_rate = fee_rate

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
-from typing import Optional
 
 from .models import Candle, Fill, Order, OrderType, Position, Side
 from .strategy import StrategyContext
@@ -14,11 +13,13 @@ class RiskLimits:
     max_position_pct: float = 0.10
     max_daily_loss_pct: float = 0.05
     max_open_positions: int = 3
-    stop_loss_pct: Optional[float] = 0.02
-    take_profit_pct: Optional[float] = 0.04
+    stop_loss_pct: float | None = 0.02
+    take_profit_pct: float | None = 0.04
+    min_notional: float = 10.0  
 
     def to_dict(self) -> dict:
         return asdict(self)
+
 
 
 class RiskManager:
@@ -37,8 +38,8 @@ class RiskManager:
         self.halted = False
         self.rejection_count = 0
         self.halt_count = 0
-        self._day: Optional[date] = None
-        self._day_start_equity: Optional[float] = None
+        self._day: date | None = None
+        self._day_start_equity: float | None = None
 
     # --- lifecycle ---
 
@@ -115,7 +116,7 @@ class RiskManager:
 
     # --- order screening ---
 
-    def check_order(self, order: Order, ctx: StrategyContext) -> Optional[Order]:
+    def check_order(self, order: Order, ctx: StrategyContext) -> Order | None:
         if self.halted:
             self.rejection_count += 1
             return None
@@ -126,7 +127,13 @@ class RiskManager:
         ):
             self.rejection_count += 1
             return None
-
+        
+        # reject orders below the exchange minimum notional
+        if ctx.last_price > 0:
+            notional = order.quantity * ctx.last_price
+            if notional < self.limits.min_notional:
+                self.rejection_count += 1
+                return None
         # size cap on buys
         if order.side is Side.BUY and ctx.last_price > 0:
             equity = ctx.portfolio.equity({ctx.symbol: ctx.last_price})

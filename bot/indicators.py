@@ -1,10 +1,10 @@
 """Pure indicator functions. Take a sequence of floats, return a float or None."""
 from __future__ import annotations
 
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 
-def sma(values: Sequence[float], period: int) -> Optional[float]:
+def sma(values: Sequence[float], period: int) -> float | None:
     """Simple moving average of the last `period` values."""
     if period <= 0:
         raise ValueError("period must be > 0")
@@ -13,7 +13,7 @@ def sma(values: Sequence[float], period: int) -> Optional[float]:
     return sum(values[-period:]) / period
 
 
-def ema(values: Sequence[float], period: int) -> Optional[float]:
+def ema(values: Sequence[float], period: int) -> float | None:
     """Exponential moving average, seeded with an SMA of the first `period` values."""
     if period <= 0:
         raise ValueError("period must be > 0")
@@ -27,7 +27,7 @@ def ema(values: Sequence[float], period: int) -> Optional[float]:
     return result
 
 
-def rsi(values: Sequence[float], period: int = 14) -> Optional[float]:
+def rsi(values: Sequence[float], period: int = 14) -> float | None:
     """Wilder's RSI over the last `period` changes."""
     if period <= 0:
         raise ValueError("period must be > 0")

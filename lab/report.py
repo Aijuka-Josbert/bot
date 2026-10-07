@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from .runner import LabRun
 
-
 _COLUMNS = [
     ("strategy", "name",             16, "s"),
     ("trades",   "trades",            7, "d"),

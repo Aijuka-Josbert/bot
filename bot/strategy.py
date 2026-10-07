@@ -4,7 +4,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from .buffer import CandleBuffer
 from .exchange import Exchange
@@ -51,7 +51,7 @@ class Strategy(ABC):
 
     name: str = "strategy"
 
-    def __init__(self, params: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         self.params = params or {}
 
     def on_start(self, ctx: StrategyContext) -> None:

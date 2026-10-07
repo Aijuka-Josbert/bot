@@ -8,6 +8,7 @@ import sys
 from .config import load_config
 from .engine import Engine
 from .exchanges import CcxtExchange, make_exchange
+from .notify import make_notifier
 from .portfolio import Portfolio
 from .risk import RiskLimits, RiskManager
 from .safety import KillSwitch, preflight_live, summarize_balances
@@ -59,29 +60,34 @@ def main(argv: list[str] | None = None) -> int:
     cfg = load_config(args.config)
     mode = "live" if args.live else "paper"
     dry_run = args.dry_run and mode == "live"
+    symbols = cfg.market.symbols
 
     banner(f"Booting engine (mode={mode}{', dry-run' if dry_run else ''})")
-    print(f"  symbol    : {cfg.market.symbol}")
+    print(f"  symbols   : {', '.join(symbols)}")
     print(f"  timeframe : {cfg.market.timeframe}")
     print(f"  testnet   : {cfg.exchange.testnet}")
 
-    # 1. exchange (paper or live)
+    notifier = make_notifier(cfg)
+
+    # 1. trading exchange (paper or live) — shared across symbols
     exchange = make_exchange(cfg, force_mode=mode, dry_run=dry_run)
 
-    # 2. live data source (always ccxt, read-only for candles)
-    source = CcxtExchange(
-        name=cfg.exchange.name,
-        symbol=cfg.market.symbol,
-        timeframe=cfg.market.timeframe,
-        api_key=cfg.exchange.api_key,
-        api_secret=cfg.exchange.api_secret,
-        testnet=cfg.exchange.testnet,
-    )
+    # 2. per-symbol data sources (ccxt, read-only for candles)
+    sources: dict[str, CcxtExchange] = {}
+    for s in symbols:
+        sources[s] = CcxtExchange(
+            name=cfg.exchange.name,
+            symbol=s,
+            timeframe=cfg.market.timeframe,
+            api_key=cfg.exchange.api_key,
+            api_secret=cfg.exchange.api_secret,
+            testnet=cfg.exchange.testnet,
+        )
 
-    # 3. preflight if live and not dry-run
+    # 3. preflight if live
     if mode == "live" and not dry_run:
         banner("Preflight")
-        ok, msg = preflight_live(exchange, cfg.market.symbol, min_balance=10.0)
+        ok, msg = preflight_live(exchange, symbols[0], min_balance=10.0)
         print(f"  preflight: {msg}")
         if not ok:
             print("  refusing to start. fix the issue above and retry.")
@@ -90,42 +96,48 @@ def main(argv: list[str] | None = None) -> int:
         if bal:
             print(f"  free {bal['quote']}: {bal['free']:.4f}")
 
-    # 4. strategy + portfolio + risk
-    strategy = make(cfg.bot.strategy, {"fast": 10, "slow": 30, "quantity": 0.005})
+    # 4. one strategy instance per symbol
+    strategies = {
+        s: make(cfg.bot.strategy, {"fast": 10, "slow": 30, "quantity": 0.005})
+        for s in symbols
+    }
+
+    # 5. shared portfolio + risk across symbols
     portfolio = Portfolio(starting_balance=cfg.risk.starting_balance)
     risk = build_risk(cfg)
 
-    # 5. engine
+    # 6. engine
     engine = Engine(
-        symbol=cfg.market.symbol,
-        strategy=strategy,
+        strategies=strategies,
         exchange=exchange,
         portfolio=portfolio,
+        sources=sources,
         risk=risk,
         poll_seconds=args.poll,
-        source=source,
         kill_switch=KillSwitch("KILL"),
         heartbeat_seconds=args.heartbeat,
+        notifier=notifier,
+        notify_fills=cfg.notifications.notify_fills,
     )
 
-    # 6. warmup with recent candles
-    warmup = source.fetch_ohlcv(limit=200)
-    engine.warmup(warmup)
-    print(f"  warmed up with {len(warmup)} candles")
+    # 7. warmup handles every symbol
+    banner("Warming up")
+    engine.warmup()
+    print(f"  warmed up {len(symbols)} symbol(s)")
 
-    # 7. run (ticks <= 0 means run forever)
+    # 8. run
     banner(f"Running for {_ticks_label(args.ticks)} (poll={args.poll}s)")
     print("  kill switch: create a file named 'KILL' to halt")
     max_iter = args.ticks if args.ticks > 0 else None
     engine.run(max_iterations=max_iter)
 
-    # 8. report
+    # 9. report
     banner("Final state")
-    last_price = source.get_last_price(cfg.market.symbol) or 0.0
-    print(portfolio.snapshot({cfg.market.symbol: last_price}))
+    prices = {s: sources[s].get_last_price(s) or 0.0 for s in symbols}
+    print(portfolio.snapshot(prices))
     for t in portfolio.closed_trades:
         print(
-            f"  {t.side.value.upper()} qty={t.quantity:.6f} "
+            f"  {t.symbol:<10} {t.side.value.upper():<4} qty={t.quantity:.6f} "
             f"{t.entry_price:.2f} -> {t.exit_price:.2f} "
             f"pnl={t.pnl:+.4f}"
         )

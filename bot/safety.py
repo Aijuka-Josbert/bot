@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +62,6 @@ def preflight_live(
     except Exception as e:
         return False, f"cannot fetch balance: {e}"
 
-    base = symbol.split("/")[0]
     quote = symbol.split("/")[1] if "/" in symbol else "USDT"
     free_quote = (bal.get("free") or {}).get(quote, 0.0)
 
@@ -77,7 +74,7 @@ def preflight_live(
     return True, f"ok (free {quote}: {free_quote:.4f})"
 
 
-def summarize_balances(exchange, quote: str = "USDT") -> Optional[dict]:
+def summarize_balances(exchange, quote: str = "USDT") -> dict | None:
     """Best-effort balance summary. Returns None if the call fails."""
     try:
         bal = exchange.client.fetch_balance()

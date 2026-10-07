@@ -17,15 +17,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Self
 
-from .models import ClosedTrade, Fill, Side
-from .portfolio import Portfolio
+from .models import ClosedTrade, Fill
 from .strategy import Strategy
-
 
 # ---------------------------------------------------------------------------
 # Schema. One big string, executed idempotently with IF NOT EXISTS.
@@ -87,7 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_runs_created ON runs(finished_at);
 """
 
 
-def _iso(dt: Optional[datetime]) -> str:
+def _iso(dt: datetime | None) -> str:
     """Serialize a datetime to ISO 8601. Always UTC-aware on the way in."""
     if dt is None:
         return ""
@@ -97,7 +94,7 @@ def _iso(dt: Optional[datetime]) -> str:
 
 
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
-    return {k: row[k] for k in row.keys()}
+    return {k: row[k] for k in row}
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +122,7 @@ class Storage:
     def close(self) -> None:
         self.conn.close()
 
-    def __enter__(self) -> "Storage":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc) -> None:
@@ -148,8 +145,8 @@ class Storage:
         fills: list[Fill],
         equity_curve: list[Any],          # list[EquityPoint] from engine.py
         closed_trades: list[ClosedTrade],
-        started_at: Optional[datetime] = None,
-        finished_at: Optional[datetime] = None,
+        started_at: datetime | None = None,
+        finished_at: datetime | None = None,
     ) -> int:
         """
         Persist one run + its children inside a single transaction.
@@ -251,7 +248,7 @@ class Storage:
         )
         return [_row_to_dict(r) for r in cur.fetchall()]
 
-    def get_run(self, run_id: int) -> Optional[dict]:
+    def get_run(self, run_id: int) -> dict | None:
         cur = self.conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,))
         row = cur.fetchone()
         if row is None:

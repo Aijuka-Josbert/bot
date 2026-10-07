@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .models import ClosedTrade, Fill, Position, Side
 
@@ -144,13 +143,13 @@ class Portfolio:
 
     # ---------- helpers ----------
 
-    def position_for(self, symbol: str) -> Optional[Position]:
+    def position_for(self, symbol: str) -> Position | None:
         return self.positions.get(symbol)
 
     def has_position(self, symbol: str) -> bool:
         return symbol in self.positions
 
-    def snapshot(self, market_prices: Optional[dict[str, float]] = None) -> PortfolioSnapshot:
+    def snapshot(self, market_prices: dict[str, float] | None = None) -> PortfolioSnapshot:
         prices = market_prices or {}
         return PortfolioSnapshot(
             cash=round(self.cash, 4),

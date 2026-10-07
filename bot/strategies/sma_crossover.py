@@ -1,7 +1,7 @@
 """Classic SMA crossover: go long on golden cross, flat on death cross."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from ..indicators import sma
 from ..models import Candle, Order, OrderType, Side
@@ -11,7 +11,7 @@ from ..strategy import Strategy, StrategyContext
 class SmaCrossover(Strategy):
     name = "sma_crossover"
 
-    def __init__(self, params: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         super().__init__(params)
         self.fast = int(self.params.get("fast", 20))
         self.slow = int(self.params.get("slow", 50))
@@ -19,7 +19,7 @@ class SmaCrossover(Strategy):
         if self.fast >= self.slow:
             raise ValueError(f"fast ({self.fast}) must be < slow ({self.slow})")
 
-        self._prev_diff: Optional[float] = None
+        self._prev_diff: float | None = None
         self._warmup = self.slow
 
     def on_start(self, ctx: StrategyContext) -> None:

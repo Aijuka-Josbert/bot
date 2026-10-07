@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import math
-from typing import Sequence
+from collections.abc import Sequence
+from itertools import pairwise
 
 from .models import ClosedTrade
-
 
 # --- return-based ---
 
@@ -17,10 +17,10 @@ def total_return_pct(start: float, end: float) -> float:
 
 def periodic_returns(equity: Sequence[float]) -> list[float]:
     """Simple period-over-period returns from an equity curve."""
-    out: list[float] = []
-    for prev, cur in zip(equity, equity[1:]):
-        out.append((cur - prev) / prev if prev > 0 else 0.0)
-    return out
+    return [
+        (cur - prev) / prev if prev > 0 else 0.0
+        for prev, cur in pairwise(equity)
+    ]
 
 
 def sharpe(returns: Sequence[float], periods_per_year: int = 525_600) -> float:

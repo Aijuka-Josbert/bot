@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
 
 
 class Side(str, Enum):
@@ -12,7 +11,7 @@ class Side(str, Enum):
     SELL = "sell"
 
     @property
-    def opposite(self) -> "Side":
+    def opposite(self) -> Side:
         return Side.SELL if self is Side.BUY else Side.BUY
 
 
@@ -56,10 +55,10 @@ class Order:
     side: Side
     quantity: float
     order_type: OrderType = OrderType.MARKET
-    price: Optional[float] = None
-    trigger_price: Optional[float] = None   # <-- NEW: forced-exit fill price hint
+    price: float | None = None
+    trigger_price: float | None = None   # <-- NEW: forced-exit fill price hint
     status: OrderStatus = OrderStatus.NEW
-    id: Optional[str] = None
+    id: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -85,8 +84,8 @@ class Position:
     quantity: float
     entry_price: float
     opened_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    stop_loss: Optional[float] = None
-    take_profit: Optional[float] = None
+    stop_loss: float | None = None
+    take_profit: float | None = None
 
     def unrealized_pnl(self, price: float) -> float:
         direction = 1 if self.side is Side.BUY else -1

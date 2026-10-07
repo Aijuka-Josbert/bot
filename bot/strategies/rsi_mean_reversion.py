@@ -1,7 +1,7 @@
 """Buy oversold, sell overbought. Rides mean reversion in range-bound markets."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from ..indicators import rsi
 from ..models import Candle, Order, OrderType, Side
@@ -11,7 +11,7 @@ from ..strategy import Strategy, StrategyContext
 class RsiMeanReversion(Strategy):
     name = "rsi_mean_reversion"
 
-    def __init__(self, params: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         super().__init__(params)
         self.period = int(self.params.get("period", 14))
         self.oversold = float(self.params.get("oversold", 30.0))

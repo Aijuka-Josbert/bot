@@ -1,8 +1,6 @@
 """Shared per-candle pipeline used by both the backtester and the live engine."""
 from __future__ import annotations
 
-from typing import Optional
-
 from .exchange import Exchange
 from .models import Candle, Fill, Order
 from .portfolio import Portfolio
@@ -17,9 +15,9 @@ def execute_order(
     exchange: Exchange,
     portfolio: Portfolio,
     strategy: Strategy,
-    risk: Optional[RiskManager],
+    risk: RiskManager | None,
     ctx: StrategyContext,
-) -> Optional[Fill]:
+) -> Fill | None:
     """
     Submit one order. If the order carries a trigger_price (SL/TP/halt),
     temporarily pin the exchange price to it so the fill lands near the trigger.
@@ -50,7 +48,7 @@ def process_candle(
     strategy: Strategy,
     exchange: Exchange,
     portfolio: Portfolio,
-    risk: Optional[RiskManager],
+    risk: RiskManager | None,
 ) -> list[Fill]:
     """
     Run one closed candle through:

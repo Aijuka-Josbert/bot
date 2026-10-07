@@ -11,7 +11,9 @@ exchange:
   testnet: true
 
 market:
-  symbol: "BTC/USDT"
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
   timeframe: "1m"
   candles_lookback: 200
 
@@ -27,3 +29,11 @@ risk:
 
 storage:
   db_path: "data/bot.db"
+
+notifications:
+  enabled: true
+  notify_fills: false
+  min_interval_seconds: 5
+  telegram:
+    bot_token: "${TELEGRAM_BOT_TOKEN}"
+    chat_id: "${TELEGRAM_CHAT_ID}"

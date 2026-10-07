@@ -1,7 +1,7 @@
 """Portfolio accounting: cash, positions, PnL invariants."""
 import pytest
 
-from bot.models import ClosedTrade, Fill, Side
+from bot.models import Fill, Side
 from bot.portfolio import Portfolio
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -13,14 +13,14 @@ class DataSpec:
     source: str                       # csv | synthetic | ccxt
     symbol: str
     timeframe: str = "1m"
-    path: Optional[str] = None        # for csv
-    since: Optional[str] = None       # for ccxt
+    path: str | None = None        # for csv
+    since: str | None = None       # for ccxt
     n: int = 2000                     # for synthetic
     start_price: float = 30_000.0
     drift: float = 0.0
     volatility: float = 0.004
     step_seconds: int = 60
-    seed: Optional[int] = None
+    seed: int | None = None
 
 
 @dataclass
@@ -48,8 +48,8 @@ class RiskSpec:
     max_position_pct: float = 0.10
     max_daily_loss_pct: float = 0.05
     max_open_positions: int = 3
-    stop_loss_pct: Optional[float] = 0.02
-    take_profit_pct: Optional[float] = 0.04
+    stop_loss_pct: float | None = 0.02
+    take_profit_pct: float | None = 0.04
 
 
 @dataclass

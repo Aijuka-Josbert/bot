@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from .models import Fill, Order, OrderStatus, OrderType, Side
 
@@ -15,10 +14,10 @@ class Exchange(ABC):
     def update_price(self, symbol: str, price: float) -> None: ...
 
     @abstractmethod
-    def get_last_price(self, symbol: str) -> Optional[float]: ...
+    def get_last_price(self, symbol: str) -> float | None: ...
 
     @abstractmethod
-    def submit(self, order: Order) -> Optional[Fill]: ...
+    def submit(self, order: Order) -> Fill | None: ...
 
 
 class PaperExchange(Exchange):
@@ -49,12 +48,12 @@ class PaperExchange(Exchange):
             raise ValueError(f"price must be > 0, got {price}")
         self._prices[symbol] = float(price)
 
-    def get_last_price(self, symbol: str) -> Optional[float]:
+    def get_last_price(self, symbol: str) -> float | None:
         return self._prices.get(symbol)
 
     # ---- order flow ----
 
-    def submit(self, order: Order) -> Optional[Fill]:
+    def submit(self, order: Order) -> Fill | None:
         last = self._prices.get(order.symbol)
         if last is None:
             order.status = OrderStatus.REJECTED

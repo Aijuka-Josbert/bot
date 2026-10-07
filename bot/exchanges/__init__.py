@@ -1,18 +1,16 @@
 """Exchange factory. Chooses paper or live based on config."""
 from __future__ import annotations
 
-from typing import Optional
-
 from ..config import Config
 from ..exchange import PaperExchange
 from .ccxt_exchange import CcxtExchange
 
-__all__ = ["make_exchange", "CcxtExchange", "PaperExchange"]
+__all__ = ["CcxtExchange", "PaperExchange", "make_exchange"]
 
 
 def make_exchange(
     cfg: Config,
-    force_mode: Optional[str] = None,
+    force_mode: str | None = None,
     dry_run: bool = False,
 ):
     """

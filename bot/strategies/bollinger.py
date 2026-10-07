@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import statistics
-from typing import Any, Optional
+from typing import Any
 
 from ..models import Candle, Order, OrderType, Side
 from ..strategy import Strategy, StrategyContext
@@ -11,7 +11,7 @@ from ..strategy import Strategy, StrategyContext
 class BollingerBreakout(Strategy):
     name = "bollinger_breakout"
 
-    def __init__(self, params: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, params: dict[str, Any] | None = None) -> None:
         super().__init__(params)
         self.period = int(self.params.get("period", 20))
         self.num_std = float(self.params.get("num_std", 2.0))

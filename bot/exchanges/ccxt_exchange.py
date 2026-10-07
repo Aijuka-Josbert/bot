@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 from ..exchange import Exchange
 from ..models import Candle, Fill, Order, OrderStatus, OrderType, Side
@@ -85,10 +84,10 @@ class CcxtExchange(Exchange):
     def update_price(self, symbol: str, price: float) -> None:
         self._prices[symbol] = float(price)
 
-    def get_last_price(self, symbol: str) -> Optional[float]:
+    def get_last_price(self, symbol: str) -> float | None:
         return self._prices.get(symbol)
 
-    def submit(self, order: Order) -> Optional[Fill]:
+    def submit(self, order: Order) -> Fill | None:
         if order.order_type is not OrderType.MARKET:
             logger.warning("only market orders supported; got %s", order.order_type)
             order.status = OrderStatus.REJECTED
@@ -138,7 +137,7 @@ class CcxtExchange(Exchange):
 
     # --- dry-run helper ---
 
-    def _simulated_fill(self, order: Order) -> Optional[Fill]:
+    def _simulated_fill(self, order: Order) -> Fill | None:
         ref = self._prices.get(order.symbol)
         if ref is None:
             logger.error("dry-run: no reference price for %s", order.symbol)

@@ -4,13 +4,13 @@ from __future__ import annotations
 import concurrent.futures as cf
 from dataclasses import dataclass
 
-from bot.backtest import BacktestResult, Backtester
+from bot.backtest import Backtester, BacktestResult
 from bot.data import generate_synthetic, load_csv
 from bot.models import Candle
+from bot.risk import RiskLimits, RiskManager
 from bot.strategies import make
 
 from .config import LabConfig, StrategySpec
-from bot.risk import RiskLimits, RiskManager
 
 
 @dataclass
@@ -54,7 +54,7 @@ def load_candles(cfg: LabConfig) -> list[Candle]:
         )
     raise ValueError(f"unknown data source: {d.source!r}")
 
-def _build_risk(cfg: LabConfig) -> Optional[RiskManager]:
+def _build_risk(cfg: LabConfig) -> RiskManager | None:
     if not cfg.risk.enabled:
         return None
     return RiskManager(RiskLimits(

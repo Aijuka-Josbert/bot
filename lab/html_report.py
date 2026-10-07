@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import base64
 import html
+import math
 from pathlib import Path
 
 from .runner import LabRun
-
 
 # --- formatting helpers ---
 
@@ -29,7 +29,7 @@ _METRIC_ORDER = [
 def _fmt(value, spec: str) -> str:
     if value is None:
         return "-"
-    if isinstance(value, float) and value != value:
+    if isinstance(value, float) and math.isnan(value):
         return "n/a"
     try:
         if spec == "d":

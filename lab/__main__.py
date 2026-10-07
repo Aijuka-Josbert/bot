@@ -9,7 +9,6 @@ from .report import print_leaderboard
 from .runner import run_lab
 from .storage import LabStore
 
-
 # --- commands ---
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -23,7 +22,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 0
 
     if args.no_charts:
-        import lab.charts as charts
+        from lab import charts
         charts.HAVE_MPL = False
 
     store = LabStore(cfg.output.dir)
@@ -111,7 +110,7 @@ def cmd_charts(args: argparse.Namespace) -> int:
 
     print("\nnote: charts are generated during 'lab run'.")
     print("      to regenerate, re-run with the same config:")
-    print(f"      python -m lab run --config <yaml>")
+    print("      python -m lab run --config <yaml>")
     return 0
 
 def cmd_report(args: argparse.Namespace) -> int:
